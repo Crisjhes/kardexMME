@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kardex Digital - U.E. Miguel Mercado Encinas</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        emerald: {
+                            600: '#059669',
+                            700: '#047857',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* CSS Styles for Print/PDF generation */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-kardex, #printable-kardex * {
+                visibility: visible;
+            }
+            #printable-kardex {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white;
+                color: black;
+                padding: 20px;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col md:flex-row">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-full md:w-64 bg-slate-900 text-slate-300 flex-shrink-0 flex flex-col justify-between no-print shadow-xl">
+        <div>
+            <!-- Header Logo / Info -->
+            <div class="p-4 border-b border-slate-800 flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-sm leading-tight">U.E. MIGUEL MERCADO ENCINAS</h1>
+                    <p class="text-xs text-blue-400 font-medium">Kardex Digital • BTH 2026</p>
+                </div>
+            </div>
+
+            <!-- Context Info Tag -->
+            <div class="mx-3 mt-3 px-3 py-2 rounded-lg bg-slate-800/80 border border-slate-700/50 text-xs">
+                <p class="text-slate-400 font-medium"><i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> Chulumani - Sud Yungas</p>
+                <p class="text-slate-400 mt-0.5"><i class="fa-solid fa-laptop-code text-emerald-400 mr-1"></i> Sistemas Informáticos</p>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="mt-4 px-2 space-y-1">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors bg-blue-600 text-white">
+                    <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+                    <span>Dashboard General</span>
+                </button>
+
+                <button onclick="switchTab('estudiantes')" id="nav-estudiantes" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
+                    <i class="fa-solid fa-user-graduate w-5 text-center"></i>
+                    <span>Gestión Estudiantes</span>
+                </button>
+
+                <button onclick="switchTab('asistencia')" id="nav-asistencia" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
+                    <i class="fa-solid fa-clipboard-user w-5 text-center"></i>
+                    <span>Kardex Estudiantil</span>
+                </button>
+
+                <button onclick="switchTab('incidencias')" id="nav-incidencias" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
+                    <i class="fa-solid fa-triangle-exclamation w-5 text-center"></i>
+                    <span>Incidencias / Disciplina</span>
+                </button>
+
+                <button onclick="switchTab('kardex')" id="nav-kardex" class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
+                    <i class="fa-solid fa-file-invoice w-5 text-center"></i>
+                    <span>Kardex Individual</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- User / Session Footer -->
+        <div class="p-3 border-t border-slate-800 bg-slate-950/50">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold">
+                        REG
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-white">Regencia / Dirección</p>
+                        <p class="text-[10px] text-slate-400">Rol: Administrador</p>
+                    </div>
+                </div>
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    Online
+                </span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col overflow-y-auto no-print">
+        
+        <!-- Top Navbar -->
+        <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+            <div class="flex items-center space-x-3">
+                <h2 id="page-title" class="text-lg font-bold text-slate-800">Dashboard General</h2>
+                <span class="bg-blue-50 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium border border-blue-200">Gestión 2026</span>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <div class="text-right hidden sm:block">
+                    <p class="text-xs font-medium text-slate-500" id="current-date-display">Cargando fecha...</p>
+                    <p class="text-xs text-slate-400">Servidor LAN: 192.168.1.100</p>
+                </div>
+                <button onclick="showModal('modal-nuevo-estudiante')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors flex items-center space-x-1 shadow-sm">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Nuevo Estudiante</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dynamic Content Section -->
+        <div class="p-6 max-w-7xl w-full mx-auto space-y-6">
+
+            <!-- ================= TAB 1: DASHBOARD GENERAL ================= -->
+            <section id="tab-dashboard" class="tab-content space-y-6">
+                <!-- Stat Cards Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Matriculados</p>
+                            <h3 class="text-2xl font-bold text-slate-800 mt-1" id="dash-total-estudiantes">0</h3>
+                            <span class="text-xs text-emerald-600 font-medium inline-flex items-center mt-1">
+                                <i class="fa-solid fa-school mr-1"></i> 6 Cursos Registrados
+                            </span>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Asistencia Hoy</p>
+                            <h3 class="text-2xl font-bold text-slate-800 mt-1" id="dash-asistencia-pct">0%</h3>
+                            <span class="text-xs text-emerald-600 font-medium inline-flex items-center mt-1" id="dash-asistencia-sub">
+                                Promedio general
+                            </span>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-user-check"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Atrasos Registrados</p>
+                            <h3 class="text-2xl font-bold text-amber-600 mt-1" id="dash-atrasos-hoy">0</h3>
+                            <span class="text-xs text-amber-600 font-medium inline-flex items-center mt-1">
+                                Acumulado del período
+                            </span>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Citaciones Activas</p>
+                            <h3 class="text-2xl font-bold text-rose-600 mt-1" id="dash-citaciones-activas">0</h3>
+                            <span class="text-xs text-rose-600 font-medium inline-flex items-center mt-1">
+                                Requiere atención de tutor
+                            </span>
+                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-envelope-open-text"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-slate-800 text-sm">Resumen Semanal de Puntualidad y Asistencia</h3>
+                            <span class="text-xs text-slate-400">Datos consolidados por Regencia</span>
+                        </div>
+                        <div class="h-64">
+                            <canvas id="chartAsistencia"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-slate-800 text-sm">Distribución de Faltas Disciplinarias</h3>
+                            <span class="text-xs text-slate-400">Por gravedad</span>
+                        </div>
+                        <div class="h-64 flex items-center justify-center">
+                            <canvas id="chartDisciplina"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity Table & Quick Actions -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                            <h3 class="font-bold text-slate-800 text-sm">Últimos Registros de Incidencias / Observaciones</h3>
+                            <button onclick="switchTab('incidencias')" class="text-xs font-semibold text-blue-600 hover:underline">Ver todas</button>
+                        </div>
+                        <div class="divide-y divide-slate-100 max-h-80 overflow-y-auto" id="recent-activity-list">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Quick Navigation Card -->
+                    <div class="bg-slate-900 text-white p-5 rounded-xl shadow-lg flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center space-x-2 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+                                <i class="fa-solid fa-bolt"></i>
+                                <span>Accesos Rápidos</span>
+                            </div>
+                            <h3 class="font-bold text-lg mb-2">Control Diario de Regencia</h3>
+                            <p class="text-xs text-slate-300 leading-relaxed">
+                                Tome la asistencia del día en menos de 2 minutos por curso. El sistema detectará automáticamente ausentismos críticos.
+                            </p>
+                        </div>
+
+                        <div class="space-y-2 mt-6">
+                            <button onclick="switchTab('asistencia')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg text-xs transition-colors flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-clipboard-check"></i>
+                                <span>Tomar Asistencia Ahora</span>
+                            </button>
+                            <button onclick="switchTab('kardex')" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-2.5 px-4 rounded-lg text-xs transition-colors flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-print"></i>
+                                <span>Imprimir Kardex Estudiantil</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= TAB 2: GESTIÓN DE ESTUDIANTES ================= -->
+            <section id="tab-estudiantes" class="tab-content hidden space-y-4">
+                <!-- Controls Bar -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                        <div class="relative w-full sm:w-64">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                            <input type="text" id="search-estudiante" oninput="renderEstudiantes()" placeholder="Buscar por Nombre o RUDE..." class="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <select id="filter-curso" onchange="renderEstudiantes()" class="w-full sm:w-48 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="todos">Todos los Cursos</option>
+                            <option value="6to Sec. A">6to Sec. A</option>
+                            <option value="6to Sec. B">6to Sec. B</option>
+                            <option value="6to Sec. C">6to Sec. C</option>
+                            <option value="5to Sec. A">5to Sec. A</option>
+                            <option value="5to Sec. B">5to Sec. B</option>
+                            <option value="5to Sec. C">5to Sec. C</option>
+                            <option value="4to Sec. A">4to Sec. A</option>
+                            <option value="4to Sec. B">4to Sec. B</option>
+                            <option value="4to Sec. C">4to Sec. C</option>
+                            <option value="3ro Sec. A">3ro Sec. A</option>
+                            <option value="3ro Sec. B">3ro Sec. B</option>
+                            <option value="3ro Sec. C">3ro Sec. C</option>
+                            <option value="3ro Sec. D">3ro Sec. D</option>
+                            <option value="2do Sec. A">2do Sec. A</option>
+                            <option value="2do Sec. B">2do Sec. B</option>
+                            <option value="2do Sec. C">2do Sec. C</option>
+                            <option value="2do Sec. D">2do Sec. D</option>
+                            <option value="1ro Sec. A">1ro Sec. A</option>
+                            <option value="1ro Sec. B">1ro Sec. B</option>
+                            <option value="1ro Sec. C">1ro Sec. C</option>
+                        </select>
+                    </div>
+
+                    <button onclick="showModal('modal-nuevo-estudiante')" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>Registrar Estudiante</span>
+                    </button>
+                </div>
+
+                <!-- Students Table -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                                <tr>
+                                    <th class="px-4 py-3">RUDE</th>
+                                    <th class="px-4 py-3">Estudiante</th>
+                                    <th class="px-4 py-3">Curso</th>
+                                    <th class="px-4 py-3">Padre / Tutor Legal</th>
+                                    <th class="px-4 py-3">Contacto</th>
+                                    <th class="px-4 py-3 text-center">Asistencia %</th>
+                                    <th class="px-4 py-3 text-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-estudiantes-body" class="divide-y divide-slate-100">
+                                <!-- Dynamic content -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= TAB 3: ASISTENCIA Y PUNTUALIDAD ================= -->
+            <section id="tab-asistencia" class="tab-content hidden space-y-4">
+                <!-- Selection Bar -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Curso / Paralelo</label>
+                            <select id="asistencia-curso" onchange="cargarListaAsistencia()" class="px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px]">
+                                <option value="6to Sec. A">6to Sec. A</option>
+                                <option value="6to Sec. B">6to Sec. B</option>
+                                <option value="6to Sec. C">6to Sec. C</option>
+                                <option value="5to Sec. A">5to Sec. A</option>
+                                <option value="5to Sec. B">5to Sec. B</option>
+                                <option value="5to Sec. C">5to Sec. C</option>
+                                <option value="4to Sec. A">4to Sec. A</option>
+                                <option value="4to Sec. B">4to Sec. B</option>
+                                <option value="4to Sec. C">4to Sec. C</option>
+                                <option value="3ro Sec. A">3ro Sec. A</option>
+                                <option value="3ro Sec. B">3ro Sec. B</option>
+                                <option value="3ro Sec. C">3ro Sec. C</option>
+                                <option value="3ro Sec. D">3ro Sec. D</option>
+                                <option value="2do Sec. A">2do Sec. A</option>
+                                <option value="2do Sec. B">2do Sec. B</option>
+                                <option value="2do Sec. C">2do Sec. C</option>
+                                <option value="2do Sec. D">2do Sec. D</option>
+                                <option value="1ro Sec. A">1ro Sec. A</option>
+                                <option value="1ro Sec. B">1ro Sec. B</option>
+                                <option value="1ro Sec. C">1ro Sec. C</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Fecha de Registro</label>
+                            <input type="date" id="asistencia-fecha" class="px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <button onclick="marcarTodos('P')" class="px-3 py-1.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg text-xs font-semibold transition-colors">
+                            <i class="fa-solid fa-check-double mr-1"></i> Todos Presentes
+                        </button>
+                        <button onclick="guardarAsistencia()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-colors flex items-center space-x-1 shadow-sm">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>Guardar Registro</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="flex flex-wrap items-center gap-3 bg-blue-50/50 p-3 rounded-lg border border-blue-100 text-xs">
+                    <span class="font-bold text-slate-700">Leyenda de Asistencia:</span>
+                    <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">P = Presente</span>
+                    <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">A = Atraso</span>
+                    <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold">FL = Falta Licencia</span>
+                    <span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-semibold">FI = Falta Injustificada</span>
+                    <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">NPC = No Presento Carpeta</span>
+                    <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">NPP = No Presento Práctica</span>
+                    <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-semibold">IE = Inasistencia a Evaluaciones</span>
+                    <span class="px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 font-semibold">IC = Inasistencia a Clases</span>
+                </div>
+
+                <!-- Attendance Table -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase">
+                                <tr>
+                                    <th class="px-4 py-3">Estudiante</th>
+                                    <th class="px-4 py-3">RUDE</th>
+                                    <th class="px-4 py-3 text-center">Estado Asistencia</th>
+                                    <th class="px-4 py-3 text-center">Carpeta / Práctica</th>
+                                    <th class="px-4 py-3 text-center">Inasistencia Evaluaciones (IE)</th>
+                                    <th class="px-4 py-3 text-center">Inasistencia Clases (IC)</th>
+                                    <th class="px-4 py-3">Observación / Justificación</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-asistencia-body" class="divide-y divide-slate-100">
+                                <!-- Dynamic content -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= TAB 4: INCIDENCIAS DISCIPLINARIAS ================= -->
+            <section id="tab-incidencias" class="tab-content hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Form panel -->
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-fit">
+                        <h3 class="font-bold text-slate-800 text-sm mb-4 border-b pb-2 flex items-center space-x-2">
+                            <i class="fa-solid fa-pen-to-square text-blue-600"></i>
+                            <span>Asentar Incidencia / Mérito</span>
+                        </h3>
+
+                        <form id="form-incidencia" onsubmit="guardarIncidencia(event)" class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Estudiante</label>
+                                <select id="incidencia-estudiante" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <!-- Populated dynamically -->
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo de Registro</label>
+                                <select id="incidencia-tipo" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option value="Leve">Falta Leve (Uniforme, atraso recurrente)</option>
+                                    <option value="Grave">Falta Grave (Indisciplina, inasistencia)</option>
+                                    <option value="Muy Grave">Falta Muy Grave (Agresión, daños)</option>
+                                    <option value="Mérito">Mérito / Felicitación Destacada</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Descripción de la Situación</label>
+                                <textarea id="incidencia-desc" required rows="3" placeholder="Detalle lo sucedido minuciosamente..." class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+                            </div>
+
+                            <div class="flex items-center space-x-2 pt-1">
+                                <input type="checkbox" id="incidencia-citacion" class="rounded text-blue-600 focus:ring-blue-500">
+                                <label for="incidencia-citacion" class="text-xs text-slate-700 font-medium">Generar Citación Formal a Padres</label>
+                            </div>
+
+                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg text-xs transition-colors shadow-sm mt-2">
+                                Registrar en Kardex
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Incidents Log Table -->
+                    <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between">
+                        <div>
+                            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                                <h3 class="font-bold text-slate-800 text-sm">Historial de Antecedentes Disciplinarios</h3>
+                                <span class="text-xs text-slate-400">Reglamento Interno U.E.</span>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase">
+                                        <tr>
+                                            <th class="px-4 py-3">Fecha</th>
+                                            <th class="px-4 py-3">Estudiante</th>
+                                            <th class="px-4 py-3">Gravedad / Tipo</th>
+                                            <th class="px-4 py-3">Descripción</th>
+                                            <th class="px-4 py-3 text-center">Citación</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabla-incidencias-body" class="divide-y divide-slate-100">
+                                        <!-- Dynamic content -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= TAB 5: KARDEX INDIVIDUAL & PRINT PDF ================= -->
+            <section id="tab-kardex" class="tab-content hidden space-y-4">
+                <!-- Selection Header -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 no-print">
+                    <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <label class="text-xs font-bold text-slate-600 whitespace-nowrap">Seleccionar Estudiante:</label>
+                        <select id="kardex-select-estudiante" onchange="cargarFichaKardex()" class="w-full sm:w-80 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <!-- Dynamic options -->
+                        </select>
+                    </div>
+
+                    <button onclick="imprimirKardex()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2 shadow-sm">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>Imprimir / Exportar Ficha PDF</span>
+                    </button>
+                </div>
+
+                <!-- Kardex Card (Printable Sheet) -->
+                <div id="printable-kardex" class="bg-white p-8 rounded-xl border border-slate-300 shadow-md max-w-4xl mx-auto space-y-6">
+                    <!-- School Header -->
+                    <div class="border-b-2 border-slate-800 pb-4 flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-16 h-16 rounded-full bg-blue-900 text-white flex items-center justify-center font-bold text-2xl border-2 border-amber-400">
+                                UE
+                            </div>
+                            <div>
+                                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">UNIDAD EDUCATIVA TÉCNICO HUMANÍSTICO</h1>
+                                <h2 class="text-lg font-bold text-blue-900">"MIGUEL MERCADO ENCINAS"</h2>
+                                <p class="text-xs text-slate-600 font-medium">Distrito Educativo Chulumani • Sud Yungas - La Paz • Gestión 2026</p>
+                            </div>
+                        </div>
+                        <div class="text-right border-l-2 border-slate-200 pl-4">
+                            <span class="inline-block px-3 py-1 bg-slate-900 text-white text-xs font-bold rounded">KARDEX DIGITAL</span>
+                            <p class="text-[10px] text-slate-500 mt-1">BTH - Sistemas Informáticos</p>
+                        </div>
+                    </div>
+
+                    <!-- Student Personal Info Block -->
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 text-xs grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <span class="text-slate-500 font-semibold block">Estudiante:</span>
+                            <span class="font-bold text-slate-800 text-sm" id="kardex-nombre">-</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 font-semibold block">Código RUDE:</span>
+                            <span class="font-mono text-slate-800" id="kardex-rude">-</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 font-semibold block">Curso / Paralelo:</span>
+                            <span class="font-bold text-blue-700" id="kardex-curso">-</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 font-semibold block">Padre / Tutor Legal:</span>
+                            <span class="text-slate-800" id="kardex-tutor">-</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 font-semibold block">Teléfono / Contacto:</span>
+                            <span class="text-slate-800" id="kardex-telefono">-</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 font-semibold block">Estado de Permanencia:</span>
+                            <span class="text-emerald-700 font-bold">Regular / Activo</span>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Summary -->
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center space-x-1">
+                            <i class="fa-solid fa-chart-simple text-blue-600"></i>
+                            <span>Resumen Acumulado de Asistencia y Evaluaciones</span>
+                        </h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                            <div class="p-2 bg-emerald-50 border border-emerald-200 rounded-lg">
+                                <span class="block text-slate-500 text-[10px]">Presente</span>
+                                <span class="text-lg font-bold text-emerald-700" id="kardex-count-p">0</span>
+                            </div>
+                            <div class="p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                                <span class="block text-slate-500 text-[10px]">Atrasos</span>
+                                <span class="text-lg font-bold text-amber-700" id="kardex-count-a">0</span>
+                            </div>
+                            <div class="p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                                <span class="block text-slate-500 text-[10px]">Faltas Licencia</span>
+                                <span class="text-lg font-bold text-blue-700" id="kardex-count-fl">0</span>
+                            </div>
+                            <div class="p-2 bg-rose-50 border border-rose-200 rounded-lg">
+                                <span class="block text-slate-500 text-[10px]">Faltas Injust.</span>
+                                <span class="text-lg font-bold text-rose-700" id="kardex-count-fi">0</span>
+                            </div>
+                            <div class="p-2 bg-purple-50 border border-purple-200 rounded-lg">
+                                <span class="block text-slate-500 text-[10px]">Inasist. Evaluaciones (IE)</span>
+                                <span class="text-lg font-bold text-purple-700" id="kardex-count-ie">0</span>
+                            </div>
+                            <div class="p-2 bg-indigo-50 border border-indigo-200 rounded-lg">
+                                <span class="block text-slate-500 text-[10px]">Inasist. Clases (IC)</span>
+                                <span class="text-lg font-bold text-indigo-700" id="kardex-count-ic">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Disciplinary History Table -->
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center space-x-1">
+                            <i class="fa-solid fa-shield-halved text-blue-600"></i>
+                            <span>Registro Disciplinario y Citaciones</span>
+                        </h3>
+                        <table class="w-full text-left text-xs border border-slate-200 rounded-lg overflow-hidden">
+                            <thead class="bg-slate-100 text-slate-700 font-bold border-b">
+                                <tr>
+                                    <th class="p-2">Fecha</th>
+                                    <th class="p-2">Tipo / Categoría</th>
+                                    <th class="p-2">Detalle de la Observación</th>
+                                    <th class="p-2 text-center">Citación</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kardex-tabla-incidencias" class="divide-y divide-slate-200">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Official Signatures Block for Print -->
+                    <div class="pt-12 grid grid-cols-3 gap-8 text-center text-xs">
+                        <div class="border-t border-slate-400 pt-2">
+                            <p class="font-bold text-slate-800">Regencia General</p>
+                            <p class="text-[10px] text-slate-500">U.E. Miguel Mercado Encinas</p>
+                        </div>
+                        <div class="border-t border-slate-400 pt-2">
+                            <p class="font-bold text-slate-800">Dirección U.E.</p>
+                            <p class="text-[10px] text-slate-500">Firma y Sello Oficial</p>
+                        </div>
+                        <div class="border-t border-slate-400 pt-2">
+                            <p class="font-bold text-slate-800">Padre / Tutor Legal</p>
+                            <p class="text-[10px] text-slate-500">Compromiso Aceptado</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Modal Nuevo Estudiante -->
+    <div id="modal-nuevo-estudiante" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden no-print">
+        <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md mx-4 overflow-hidden">
+            <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+                <h3 class="font-bold text-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-user-plus text-blue-400"></i>
+                    <span>Registrar Nuevo Estudiante</span>
+                </h3>
+                <button onclick="hideModal('modal-nuevo-estudiante')" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form onsubmit="guardarNuevoEstudiante(event)" class="p-5 space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Código RUDE</label>
+                    <input type="text" id="nuevo-rude" required placeholder="807300452026..." class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nombres y Apellidos Completo</label>
+                    <input type="text" id="nuevo-nombre" required placeholder="Ej. Mamani Quispe Mateo" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Curso y Paralelo</label>
+                    <select id="nuevo-curso" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="6to Sec. A">6to Sec. A</option>
+                        <option value="6to Sec. B">6to Sec. B</option>
+                        <option value="6to Sec. C">6to Sec. C</option>
+                        <option value="5to Sec. A">5to Sec. A</option>
+                        <option value="5to Sec. B">5to Sec. B</option>
+                        <option value="5to Sec. C">5to Sec. C</option>
+                        <option value="4to Sec. A">4to Sec. A</option>
+                        <option value="4to Sec. B">4to Sec. B</option>
+                        <option value="4to Sec. C">4to Sec. C</option>
+                        <option value="3ro Sec. A">3ro Sec. A</option>
+                        <option value="3ro Sec. B">3ro Sec. B</option>
+                        <option value="3ro Sec. C">3ro Sec. C</option>
+                        <option value="3ro Sec. D">3ro Sec. D</option>
+                        <option value="2do Sec. A">2do Sec. A</option>
+                        <option value="2do Sec. B">2do Sec. B</option>
+                        <option value="2do Sec. C">2do Sec. C</option>
+                        <option value="2do Sec. D">2do Sec. D</option>
+                        <option value="1ro Sec. A">1ro Sec. A</option>
+                        <option value="1ro Sec. B">1ro Sec. B</option>
+                        <option value="1ro Sec. C">1ro Sec. C</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre Completo del Padre/Tutor</label>
+                    <input type="text" id="nuevo-tutor" required placeholder="Ej. Gonzalo Mamani" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Teléfono / Celular de Contacto</label>
+                    <input type="text" id="nuevo-telefono" required placeholder="Ej. 71542389" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div class="pt-3 flex items-center justify-end space-x-2 border-t">
+                    <button type="button" onclick="hideModal('modal-nuevo-estudiante')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm">Guardar Estudiante</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // Data State Store   
+        let estudiantes = [
+            { id: 1, rude: '807300012026', nombre: 'Alarcón Condori Carlos', curso: '6to Sec. A', tutor: 'Roberto Alarcón', telefono: '71548923' },
+            { id: 2, rude: '807300022026', nombre: 'Choque Flores Maria Elena', curso: '6to Sec. A', tutor: 'Juana Flores', telefono: '72014589' },
+            { id: 3, rude: '807300032026', nombre: 'Gutierrez Mamani Jhoel', curso: '6to Sec. A', tutor: 'Mario Gutierrez', telefono: '74089612' },
+            { id: 4, rude: '807300042026', nombre: 'Sanchez Federico', curso: '6to Sec. B', tutor: 'Antonio Sanchez', telefono: '71954123' },
+            { id: 5, rude: '807300052026', nombre: 'Mendoza Quispe Lucía', curso: '6to Sec. B', tutor: 'Carmen Quispe', telefono: '73012478' },
+            { id: 6, rude: '807300062026', nombre: 'Quisbert Yungas Gabriel', curso: '5to Sec. A', tutor: 'Hernán Quisbert', telefono: '71289456' },
+            { id: 7, rude: '807300072026', nombre: 'Vargas Machaca Rodrigo', curso: '4to Sec. A', tutor: 'Elena Machaca', telefono: '74589123' }
+        ];
+
+        let asistencias = [
+            { idEstudiante: 1, fecha: '2026-03-10', estado: 'P', task: '', ie: false, ic: false, obs: '' },
+            { idEstudiante: 1, fecha: '2026-03-11', estado: 'FI', task: 'NPC', ie: true, ic: false, obs: 'Sin justificar' },
+            { idEstudiante: 6, fecha: '2026-03-10', estado: 'P', task: '', ie: false, ic: false, obs: '' }
+        ];
+
+        let incidencias = [
+            { id: 1, idEstudiante: 1, fecha: '2026-03-13', tipo: 'Grave', desc: 'Acumulación de faltas injustificadas continuas.', citacion: true }
+        ];
+
+        let chartAsistenciaInstance = null;
+        let chartDisciplinaInstance = null;
+
+        // Init App on Window Load
+        window.onload = function() {
+            const today = new Date();
+            const dateStr = today.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('current-date-display').textContent = dateStr;
+            document.getElementById('asistencia-fecha').value = today.toISOString().split('T')[0];
+
+            renderDashboard();
+            renderEstudiantes();
+            cargarListaAsistencia();
+            renderIncidencias();
+            populateEstudiantesSelects();
+            initCharts();
+        };
+
+        // Navigation Switcher
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('nav button').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('text-slate-400', 'hover:bg-slate-800', 'hover:text-white');
+            });
+
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-slate-400', 'hover:bg-slate-800', 'hover:text-white');
+                activeBtn.classList.add('bg-blue-600', 'text-white');
+            }
+
+            if (tabId === 'dashboard') {
+                renderDashboard();
+            } else if (tabId === 'kardex') {
+                cargarFichaKardex();
+            }
+
+            const titles = {
+                'dashboard': 'Dashboard General',
+                'estudiantes': 'Gestión de Estudiantes',
+                'asistencia': 'Control de Asistencia Diario',
+                'incidencias': 'Incidencias y Sanciones Disciplinarias',
+                'kardex': 'Kardex Digital Individual'
+            };
+            document.getElementById('page-title').textContent = titles[tabId] || 'Kardex Digital';
+        }
+
+        // Render Dashboard Stats & Widgets
+        function renderDashboard() {
+            document.getElementById('dash-total-estudiantes').textContent = estudiantes.length;
+
+            const totalAsist = asistencias.length;
+            const presentes = asistencias.filter(a => a.estado === 'P' || a.estado === 'A').length;
+            const pct = totalAsist > 0 ? Math.round((presentes / totalAsist) * 100) : 100;
+            document.getElementById('dash-asistencia-pct').textContent = `${pct}%`;
+
+            const atrasos = asistencias.filter(a => a.estado === 'A').length;
+            document.getElementById('dash-atrasos-hoy').textContent = atrasos;
+
+            const citaciones = incidencias.filter(i => i.citacion).length;
+            document.getElementById('dash-citaciones-activas').textContent = citaciones;
+
+            const recentList = document.getElementById('recent-activity-list');
+            recentList.innerHTML = '';
+            
+            incidencias.slice().reverse().slice(0, 5).forEach(inc => {
+                const est = estudiantes.find(e => e.id === inc.idEstudiante);
+                const item = document.createElement('div');
+                item.className = 'p-3 hover:bg-slate-50 flex items-center justify-between text-xs';
+                item.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <span class="px-2 py-1 rounded text-[10px] font-bold ${getTipoBadgeClass(inc.tipo)}">${inc.tipo}</span>
+                        <div>
+                            <p class="font-bold text-slate-800">${est ? est.nombre : 'Estudiante'}</p>
+                            <p class="text-slate-500 text-[11px]">${inc.desc}</p>
+                        </div>
+                    </div>
+                    <span class="text-slate-400 font-mono text-[10px] whitespace-nowrap">${inc.fecha}</span>
+                `;
+                recentList.appendChild(item);
+            });
+        }
+
+        function getTipoBadgeClass(tipo) {
+            switch (tipo) {
+                case 'Leve': return 'bg-amber-100 text-amber-800';
+                case 'Grave': return 'bg-orange-100 text-orange-800';
+                case 'Muy Grave': return 'bg-rose-100 text-rose-800';
+                case 'Mérito': return 'bg-emerald-100 text-emerald-800';
+                default: return 'bg-slate-100 text-slate-800';
+            }
+        }
+
+        // Render Students List
+        function renderEstudiantes() {
+            const query = document.getElementById('search-estudiante').value.toLowerCase();
+            const cursoFilter = document.getElementById('filter-curso').value;
+            const tbody = document.getElementById('tabla-estudiantes-body');
+            tbody.innerHTML = '';
+
+            const filtered = estudiantes.filter(e => {
+                const matchQuery = e.nombre.toLowerCase().includes(query) || e.rude.includes(query);
+                const matchCurso = cursoFilter === 'todos' || e.curso === cursoFilter;
+                return matchQuery && matchCurso;
+            });
+
+            filtered.forEach(e => {
+                const stAsist = asistencias.filter(a => a.idEstudiante === e.id);
+                const pCount = stAsist.filter(a => a.estado === 'P' || a.estado === 'A').length;
+                const pct = stAsist.length > 0 ? Math.round((pCount / stAsist.length) * 100) : 100;
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-mono font-medium text-slate-500">${e.rude}</td>
+                    <td class="px-4 py-3 font-bold text-slate-800">${e.nombre}</td>
+                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-medium">${e.curso}</span></td>
+                    <td class="px-4 py-3 text-slate-600">${e.tutor}</td>
+                    <td class="px-4 py-3 font-mono text-slate-600">${e.telefono}</td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="font-bold ${pct < 85 ? 'text-rose-600' : 'text-emerald-600'}">${pct}%</span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <button onclick="verKardexEstudiante(${e.id})" class="text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded text-[11px] transition-colors">
+                            Ver Kardex
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Attendance Form population
+        function cargarListaAsistencia() {
+            const cursoSel = document.getElementById('asistencia-curso').value;
+            const fechaSel = document.getElementById('asistencia-fecha').value;
+            const tbody = document.getElementById('tabla-asistencia-body');
+            tbody.innerHTML = '';
+
+            const cursoEstudiantes = estudiantes.filter(e => e.curso === cursoSel);
+
+            cursoEstudiantes.forEach(e => {
+                const rec = asistencias.find(a => a.idEstudiante === e.id && a.fecha === fechaSel);
+                const currentEstado = rec ? rec.estado : 'P';
+                const currentTask = rec ? (rec.task || '') : '';
+                const currentIE = rec ? !!rec.ie : false;
+                const currentIC = rec ? !!rec.ic : false;
+                const currentObs = rec ? rec.obs : '';
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50';
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-bold text-slate-800">${e.nombre}</td>
+                    <td class="px-4 py-3 font-mono text-slate-400 text-[11px]">${e.rude}</td>
+                    
+                    <!-- Estado Asistencia (P, A, FL, FI) -->
+                    <td class="px-4 py-3 text-center">
+                        <div class="inline-flex rounded-md shadow-sm border border-slate-200 p-0.5 bg-slate-100" role="group">
+                            <button type="button" onclick="setAttendanceBtn(this, ${e.id}, 'P')" class="asist-btn-${e.id} px-2 py-1 text-xs font-bold rounded ${currentEstado === 'P' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}">P</button>
+                            <button type="button" onclick="setAttendanceBtn(this, ${e.id}, 'A')" class="asist-btn-${e.id} px-2 py-1 text-xs font-bold rounded ${currentEstado === 'A' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}">A</button>
+                            <button type="button" onclick="setAttendanceBtn(this, ${e.id}, 'FL')" class="asist-btn-${e.id} px-2 py-1 text-xs font-bold rounded ${currentEstado === 'FL' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}">FL</button>
+                            <button type="button" onclick="setAttendanceBtn(this, ${e.id}, 'FI')" class="asist-btn-${e.id} px-2 py-1 text-xs font-bold rounded ${currentEstado === 'FI' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}">FI</button>
+                        </div>
+                        <input type="hidden" id="asist-val-${e.id}" value="${currentEstado}">
+                    </td>
+
+                    <!-- Carpeta / Practica (NPC, NPP) -->
+                    <td class="px-4 py-3 text-center">
+                        <div class="inline-flex rounded-md shadow-sm border border-slate-200 p-0.5 bg-slate-100" role="group">
+                            <button type="button" onclick="setTaskBtn(this, ${e.id}, 'NPC')" class="task-btn-${e.id} px-2.5 py-1 text-xs font-bold rounded ${currentTask === 'NPC' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}">NPC</button>
+                            <button type="button" onclick="setTaskBtn(this, ${e.id}, 'NPP')" class="task-btn-${e.id} px-2.5 py-1 text-xs font-bold rounded ${currentTask === 'NPP' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}">NPP</button>
+                        </div>
+                        <input type="hidden" id="task-val-${e.id}" value="${currentTask}">
+                    </td>
+
+                    <!-- Inasistencia a Evaluaciones (IE) - Independiente -->
+                    <td class="px-4 py-3 text-center">
+                        <button type="button" onclick="toggleIndividualFlag(${e.id}, 'ie')" id="btn-ie-${e.id}" class="px-3 py-1 text-xs font-bold rounded border transition-all ${currentIE ? 'bg-purple-600 text-white border-purple-700 shadow-sm' : 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200'}">
+                            ${currentIE ? '<i class="fa-solid fa-check mr-1"></i> IE' : 'IE'}
+                        </button>
+                        <input type="hidden" id="ie-val-${e.id}" value="${currentIE ? '1' : '0'}">
+                    </td>
+                   
+                    <!-- Inasistencia a Clases (IC) - Independiente -->
+                    <td class="px-4 py-3 text-center">
+                        <button type="button" onclick="toggleIndividualFlag(${e.id}, 'ic')" id="btn-ic-${e.id}" class="px-3 py-1 text-xs font-bold rounded border transition-all ${currentIC ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm' : 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200'}">
+                            ${currentIC ? '<i class="fa-solid fa-check mr-1"></i> IC Activado' : 'Marcar IC'}
+                        </button>
+                        <input type="hidden" id="ic-val-${e.id}" value="${currentIC ? '1' : '0'}">
+                    </td>
+
+                    <!-- Observaciones -->
+                    <td class="px-4 py-3">
+                        <input type="text" id="asist-obs-${e.id}" value="${currentObs}" placeholder="Motivo / Justificación..." class="w-full px-2 py-1 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-blue-500">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function setAttendanceBtn(btn, studentId, estado) {
+            document.querySelectorAll(`.asist-btn-${studentId}`).forEach(b => {
+                b.className = `asist-btn-${studentId} px-2 py-1 text-xs font-bold rounded text-slate-600 hover:text-slate-900`;
+            });
+
+            const colors = {
+                'P': 'bg-emerald-600 text-white shadow-sm',
+                'A': 'bg-amber-500 text-white shadow-sm',
+                'FL': 'bg-blue-600 text-white shadow-sm',
+                'FI': 'bg-rose-600 text-white shadow-sm'
+            };
+            btn.className = `asist-btn-${studentId} px-2 py-1 text-xs font-bold rounded ${colors[estado]}`;
+            document.getElementById(`asist-val-${studentId}`).value = estado;
+        }
+
+        function setTaskBtn(btn, studentId, estado) {
+            const currentVal = document.getElementById(`task-val-${studentId}`).value;
+
+            document.querySelectorAll(`.task-btn-${studentId}`).forEach(b => {
+                b.className = `task-btn-${studentId} px-2.5 py-1 text-xs font-bold rounded text-slate-600 hover:text-slate-900`;
+            });
+
+            if (currentVal === estado) {
+                document.getElementById(`task-val-${studentId}`).value = '';
+            } else {
+                const colors = {
+                    'NPC': 'bg-emerald-600 text-white shadow-sm',
+                    'NPP': 'bg-amber-500 text-white shadow-sm'
+                };
+                btn.className = `task-btn-${studentId} px-2.5 py-1 text-xs font-bold rounded ${colors[estado]}`;
+                document.getElementById(`task-val-${studentId}`).value = estado;
+            }
+        }
+
+        function toggleIndividualFlag(studentId, flagType) {
+            const inputEl = document.getElementById(`${flagType}-val-${studentId}`);
+            const btnEl = document.getElementById(`btn-${flagType}-${studentId}`);
+            const isCurrentlyActive = inputEl.value === '1';
+
+            if (isCurrentlyActive) {
+                inputEl.value = '0';
+                if (flagType === 'ie') {
+                    btnEl.className = 'px-3 py-1 text-xs font-bold rounded border transition-all bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200';
+                    btnEl.innerHTML = 'Marcar IE';
+                } else {
+                    btnEl.className = 'px-3 py-1 text-xs font-bold rounded border transition-all bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200';
+                    btnEl.innerHTML = 'Marcar IC';
+                }
+            } else {
+                inputEl.value = '1';
+                if (flagType === 'ie') {
+                    btnEl.className = 'px-3 py-1 text-xs font-bold rounded border transition-all bg-purple-600 text-white border-purple-700 shadow-sm';
+                    btnEl.innerHTML = '<i class="fa-solid fa-check mr-1"></i> IE Activado';
+                } else {
+                    btnEl.className = 'px-3 py-1 text-xs font-bold rounded border transition-all bg-indigo-600 text-white border-indigo-700 shadow-sm';
+                    btnEl.innerHTML = '<i class="fa-solid fa-check mr-1"></i> IC Activado';
+                }
+            }
+        }
+
+        function marcarTodos(estado) {
+            const cursoSel = document.getElementById('asistencia-curso').value;
+            const cursoEst = estudiantes.filter(e => e.curso === cursoSel);
+            cursoEst.forEach(e => {
+                const btn = document.querySelector(`.asist-btn-${e.id}`);
+                if (btn) {
+                    setAttendanceBtn(btn, e.id, estado);
+                }
+            });
+            showToast(`Todos marcados como '${estado}'`, 'info');
+        }
+
+        // Save Attendance & Run Business Rule Alert
+        function guardarAsistencia() {
+            const fecha = document.getElementById('asistencia-fecha').value;
+            const cursoSel = document.getElementById('asistencia-curso').value;
+            const cursoEst = estudiantes.filter(e => e.curso === cursoSel);
+
+            let citacionesGeneradas = [];
+
+            cursoEst.forEach(e => {
+                const estado = document.getElementById(`asist-val-${e.id}`).value;
+                const task = document.getElementById(`task-val-${e.id}`).value;
+                const ie = document.getElementById(`ie-val-${e.id}`).value === '1';
+                const ic = document.getElementById(`ic-val-${e.id}`).value === '1';
+                const obs = document.getElementById(`asist-obs-${e.id}`).value;
+
+                asistencias = asistencias.filter(a => !(a.idEstudiante === e.id && a.fecha === fecha));
+                asistencias.push({ idEstudiante: e.id, fecha, estado, task, ie, ic, obs });
+
+                const fiCount = asistencias.filter(a => a.idEstudiante === e.id && a.estado === 'FI').length;
+                if (fiCount >= 3) {
+                    const hasCit = incidencias.some(i => i.idEstudiante === e.id && i.desc.includes('3 faltas'));
+                    if (!hasCit) {
+                        incidencias.push({
+                            id: Date.now() + e.id,
+                            idEstudiante: e.id,
+                            fecha: fecha,
+                            tipo: 'Grave',
+                            desc: `Citación automática por acumular ${fiCount} faltas injustificadas.`,
+                            citacion: true
+                        });
+                        citacionesGeneradas.push(e.nombre);
+                    }
+                }
+            });
+
+            showToast('¡Registro de asistencia guardado correctamente!', 'success');
+
+            if (citacionesGeneradas.length > 0) {
+                setTimeout(() => {
+                    alert(`⚠️ ALERTA DE REGENCIA:\nSe generó CITACIÓN AUTOMÁTICA para los siguientes estudiantes por acumular 3 o más faltas injustificadas:\n\n• ` + citacionesGeneradas.join('\n• '));
+                }, 300);
+            }
+
+            renderIncidencias();
+            renderDashboard();
+        }
+
+        // Incidencias Management
+        function populateEstudiantesSelects() {
+            const incSel = document.getElementById('incidencia-estudiante');
+            const kardexSel = document.getElementById('kardex-select-estudiante');
+            
+            incSel.innerHTML = '';
+            kardexSel.innerHTML = '';
+
+            estudiantes.forEach(e => {
+                const opt1 = document.createElement('option');
+                opt1.value = e.id;
+                opt1.textContent = `${e.nombre} (${e.curso})`;
+                incSel.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = e.id;
+                opt2.textContent = `${e.nombre} - ${e.curso}`;
+                kardexSel.appendChild(opt2);
+            });
+        }
+
+        function guardarIncidencia(e) {
+            e.preventDefault();
+            const idEst = parseInt(document.getElementById('incidencia-estudiante').value);
+            const tipo = document.getElementById('incidencia-tipo').value;
+            const desc = document.getElementById('incidencia-desc').value;
+            const citacion = document.getElementById('incidencia-citacion').checked;
+            const today = new Date().toISOString().split('T')[0];
+
+            incidencias.push({
+                id: Date.now(),
+                idEstudiante: idEst,
+                fecha: today,
+                tipo,
+                desc,
+                citacion
+            });
+
+            document.getElementById('form-incidencia').reset();
+            showToast('Incidencia asentada en el Kardex.', 'success');
+            renderIncidencias();
+            renderDashboard();
+        }
+
+        function renderIncidencias() {
+            const tbody = document.getElementById('tabla-incidencias-body');
+            tbody.innerHTML = '';
+
+            incidencias.slice().reverse().forEach(inc => {
+                const est = estudiantes.find(e => e.id === inc.idEstudiante);
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50';
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-mono text-slate-500">${inc.fecha}</td>
+                    <td class="px-4 py-3 font-bold text-slate-800">${est ? est.nombre : 'N/A'}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${getTipoBadgeClass(inc.tipo)}">${inc.tipo}</span>
+                    </td>
+                    <td class="px-4 py-3 text-slate-600">${inc.desc}</td>
+                    <td class="px-4 py-3 text-center">
+                        ${inc.citacion 
+                            ? '<span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-bold text-[10px]"><i class="fa-solid fa-envelope mr-1"></i>Emitida</span>' 
+                            : '<span class="text-slate-400">-</span>'}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Kardex View & Print
+        function verKardexEstudiante(idEst) {
+            document.getElementById('kardex-select-estudiante').value = idEst;
+            switchTab('kardex');
+            cargarFichaKardex();
+        }
+
+        function cargarFichaKardex() {
+            const idEst = parseInt(document.getElementById('kardex-select-estudiante').value);
+            const est = estudiantes.find(e => e.id === idEst);
+            if (!est) return;
+
+            document.getElementById('kardex-nombre').textContent = est.nombre;
+            document.getElementById('kardex-rude').textContent = est.rude;
+            document.getElementById('kardex-curso').textContent = est.curso;
+            document.getElementById('kardex-tutor').textContent = est.tutor;
+            document.getElementById('kardex-telefono').textContent = est.telefono;
+
+            // Attendance counts
+            const stAsist = asistencias.filter(a => a.idEstudiante === est.id);
+            document.getElementById('kardex-count-p').textContent = stAsist.filter(a => a.estado === 'P').length;
+            document.getElementById('kardex-count-a').textContent = stAsist.filter(a => a.estado === 'A').length;
+            document.getElementById('kardex-count-fl').textContent = stAsist.filter(a => a.estado === 'FL').length;
+            document.getElementById('kardex-count-fi').textContent = stAsist.filter(a => a.estado === 'FI').length;
+            document.getElementById('kardex-count-ie').textContent = stAsist.filter(a => a.ie === true).length;
+            document.getElementById('kardex-count-ic').textContent = stAsist.filter(a => a.ic === true).length;
+
+            // Render incidents table for student
+            const tbody = document.getElementById('kardex-tabla-incidencias');
+            tbody.innerHTML = '';
+
+            const stInc = incidencias.filter(i => i.idEstudiante === est.id);
+            if (stInc.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">Sin incidencias ni antecedentes disciplinarios registrados.</td></tr>`;
+            } else {
+                stInc.forEach(inc => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="p-2 font-mono">${inc.fecha}</td>
+                        <td class="p-2 font-bold">${inc.tipo}</td>
+                        <td class="p-2">${inc.desc}</td>
+                        <td class="p-2 text-center">${inc.citacion ? 'Sí' : 'No'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        function imprimirKardex() {
+            window.print();
+        }
+
+        // Add Student Form Handler
+        function guardarNuevoEstudiante(e) {
+            e.preventDefault();
+            const rude = document.getElementById('nuevo-rude').value;
+            const nombre = document.getElementById('nuevo-nombre').value;
+            const curso = document.getElementById('nuevo-curso').value;
+            const tutor = document.getElementById('nuevo-tutor').value;
+            const telefono = document.getElementById('nuevo-telefono').value;
+
+            const newId = estudiantes.length > 0 ? Math.max(...estudiantes.map(e => e.id)) + 1 : 1;
+
+            estudiantes.push({ id: newId, rude, nombre, curso, tutor, telefono });
+
+            hideModal('modal-nuevo-estudiante');
+            showToast('Estudiante registrado con éxito.', 'success');
+            
+            populateEstudiantesSelects();
+            renderEstudiantes();
+            renderDashboard();
+        }
+
+        function showModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function hideModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+
+            const bg = type === 'success' ? 'bg-emerald-800 text-white' : type === 'error' ? 'bg-rose-800 text-white' : 'bg-slate-800 text-white';
+            const icon = type === 'success' ? 'fa-circle-check text-emerald-400' : 'fa-circle-info text-blue-400';
+
+            toast.className = `${bg} p-3 rounded-lg shadow-xl text-xs flex items-center space-x-2 transition-all transform translate-y-2 opacity-0`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icon}"></i>
+                <span>${msg}</span>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function initCharts() {
+            const ctx1 = document.getElementById('chartAsistencia').getContext('2d');
+            chartAsistenciaInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'],
+                    datasets: [
+                        { label: 'Presentes %', data: [95, 92, 96, 90, 94], backgroundColor: '#059669' },
+                        { label: 'Atrasos %', data: [3, 5, 2, 7, 4], backgroundColor: '#d97706' },
+                        { label: 'Faltas %', data: [2, 3, 2, 3, 2], backgroundColor: '#e11d48' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } },
+                    scales: { y: { max: 100, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
+                }
+            });
+
+            const ctx2 = document.getElementById('chartDisciplina').getContext('2d');
+            chartDisciplinaInstance = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Faltas Leves', 'Faltas Graves', 'Muy Graves', 'Méritos'],
+                    datasets: [{
+                        data: [5, 2, 0, 4],
+                        backgroundColor: ['#f59e0b', '#f97316', '#ef4444', '#10b981']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
